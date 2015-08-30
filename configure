@@ -1,0 +1,170 @@
+#!/bin/sh
+
+RESULTS=dist/config.mak
+
+
+
+# Prepend java binary paths in the $PATH environment
+# $1 the directory to search for java binary files
+prependjavapaths () {
+	JP=$1
+	for i in `ls $JP 2>/dev/null` ; do
+		if test -d $JP/$i/bin ; then
+			PATH=$JP/$i/bin:$PATH
+		fi
+	done
+}
+
+# Get a valid user directory
+# $1 display text
+# $2 default directory
+getdirectory () {
+	TEXT=$1
+	DIR=$2
+	KK="NO"
+	while [ "$KK" != "YES" ] ; do
+		echo -n "$TEXT [$DIR]:"
+		read RESULT
+		if [ "$RESULT" == "" ] ; then
+			RESULT=$DIR
+		fi
+		DIR=$RESULT
+		if [ -d "$RESULT" ] ; then
+			KK="YES"
+		else
+			echo "Directory not found"
+		fi
+	done
+}	
+
+
+# Check whether we build for MS platform
+# $1 pasrameter to check if equals with --ms
+checkmsplatform () {
+	PARAM=$1
+	MSPLATFORM=
+	echo -n "Checking whether building for MS..."
+	if [ "$PARAM" == "--ms" ] ; then
+		echo yes
+		for i in i686-mingw32msvc-gcc i586-mingw32msvc-gcc; do
+			echo -n "Checking for '$i'..."
+			WHERE=`which $i`
+			if test "$WHERE" != "" ; then
+				MSPLATFORM=`echo $WHERE| sed -e 's/gcc$//g'`
+				echo found
+				echo >>$RESULTS "SYSTEM=win32"
+				echo >>$RESULTS "PATHSEP=;"
+				return
+			fi
+			echo not found
+		done
+		echo " *** Building for native OS"
+	else
+		echo no
+	fi
+	echo >>$RESULTS "SYSTEM=`uname | tr [A-Z] [a-z]`"
+	echo >>$RESULTS "PATHSEP=:"
+}
+
+# Check for a program in current path
+# $1 executable to search for
+# $2 the mnemonic name of the executable
+checkprog () {
+	WHAT=$1
+	NAME=$2
+
+	echo -n "Checking for '$WHAT'..."
+	WHERE=`which $WHAT`
+	if test "$WHERE" == "" ; then
+		echo not found.
+		RESULT="notfound"
+	else
+		echo found
+		unset RESULT
+		echo >>$RESULTS "$NAME=$WHERE"
+	fi
+}
+
+
+# Check for a 1.4.2 java distribution
+checkjavadir () {
+	OLDIFS=$IFS
+	JPATH=
+	echo -n Checking for suitable java distribution...
+	IFS=":"
+	for i in $PATH ; do 
+		VERSION=`$i/java -version 2>&1|grep version| grep 1\.4`
+		if [ "$VERSION" != "" ] ; then
+			JPATH=$i
+			break
+		fi
+	done
+	IFS=$OLDIFS
+	if [ "$JPATH" == "" ] ; then
+		echo not found.
+		exit 1
+	fi
+	echo found
+}
+
+
+# $1 directory root path
+# $2 directory name
+checkdir () {
+	CPATH=$1
+	WHAT=$2
+	WHERE=${CPATH}${WHAT}
+	echo -n "Checking for '$WHAT' in '$CPATH'..."
+	if ! test -d $WHERE ; then
+		echo directory not found. Aborting.
+		exit 1
+	fi
+	NAME=`echo $WHAT| tr [a-z] [A-Z]`DIR
+	echo >>$RESULTS "$NAME=$WHERE"
+	echo found
+}
+
+################
+# MAIN PROGRAM #
+################
+
+
+OLDPATH=$PATH
+rm -f $RESULTS
+
+prependjavapaths /usr/java
+prependjavapaths /usr/local/java
+prependjavapaths /usr/share/java
+
+
+# Always *prefer* current path
+PATH=/usr/java/current/bin:$PATH
+checkjavadir
+
+PATH=$JPATH:~/local/static/apps/WTK2.1/bin:$OLDPATH
+
+checkmsplatform $1
+
+checkprog java JAVA
+checkprog javac JAVAC
+checkprog jar JAR
+
+checkprog gawk AWK
+if [ "$RESULT"=="notfound" ] ; then
+	checkprog mawk AWK
+fi
+
+checkprog ktoolbar KTOOLBAR
+if [ "$WHERE" == "" ] ; then
+	echo "Please add to your \$PATH the WTK/bin distribution"
+	exit 1
+fi
+
+checkprog preverify PREVERIFY
+
+WTK=`dirname $WHERE | xargs dirname`
+echo >>$RESULTS "WTK_HOME=$WTK"
+echo >>$RESULTS "LIB_DIR=$WTK/lib"
+echo >>$RESULTS "CLDCAPI=$WTK/lib/cldcapi11.jar"
+echo >>$RESULTS "MIDPAPI=$WTK/lib/midpapi20.jar"
+
