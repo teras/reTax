@@ -123,7 +123,7 @@ public final class reTax extends MIDlet implements CommandListener, ItemStateLis
 		}
 	
 		if ( c == aboutCmd ) {
-			String infotext = "The aim of this program is to help you recalculate the amount of money, with different tax rates. \nIn the input box insert the amount of money and the program will recalculate this amount with the new tax percentage. The net amount (without tax) will be displayed also.\n\nIn the Rates dialog enter the two tax rates (in percentage). E.g. for an 17.5% tax rate, input 17.5\n\nThis program is under the GNU Licence. Copyright 2004 by Panayotis Katsaloulis (panayotis@panayotis.com)";
+			String infotext = "The aim of this program is to help you recalculate the amount of money, with different tax rates. \nIn the input box insert the amount of money and the program will recalculate this amount with the new tax percentage. The net amount (without tax) will be displayed also.\n\nIn the Rates dialog enter the two tax rates (in percentage). E.g. for an 17.5% tax rate, input 17.5\n\nThis program is under the GNU Licence. Copyright 2004 by Panayotis Katsaloulis (http://www.panayotis.com)";
 			Alert alert = new Alert("About reTax 1.0", infotext, null, AlertType.INFO);
 			alert.setTimeout(Alert.FOREVER);
 			Display.getDisplay(this).setCurrent(alert);
